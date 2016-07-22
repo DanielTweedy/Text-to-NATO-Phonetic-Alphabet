@@ -1,0 +1,13 @@
+# Executable
+StringToNPAlpha
+
+# Object files
+*.o
+
+# Coverage files
+*.gcov
+*.gcno
+*.gcda
+
+# In memory files
+*.swp
