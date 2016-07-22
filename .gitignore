@@ -11,3 +11,6 @@ StringToNPAlpha
 
 # In memory files
 *.swp
+
+# Any testing files or junk files that aren't for commitment
+*.ignore
