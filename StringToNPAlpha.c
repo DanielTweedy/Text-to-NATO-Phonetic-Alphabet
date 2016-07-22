@@ -58,7 +58,7 @@ bool capital = false;
 
 
 int main(int argc, char *argv[]) {
-    size_t read, length; // contains the return value of getline
+    size_t read = 0, length = 0; // contains the return value of getline
     char *inputLine = NULL, // input line from getline
          *manipulantLine = NULL; // String that will be a copy of the input line and will be manipulated
 
@@ -67,6 +67,8 @@ int main(int argc, char *argv[]) {
         perror(MEM_ALLOC_ERROR);
         exit(ERROR_THROWN);
     }
+
+    manipulantLine[0] = '\0';
 
     while((read = getline(&inputLine, &length, stdin)) != EOF) {
         if(strlen(manipulantLine) < length) {
@@ -81,6 +83,9 @@ int main(int argc, char *argv[]) {
         strcpy(manipulantLine, inputLine);
         toNatoPhonetic(manipulantLine);
     }
+
+    free(manipulantLine);
+    free(inputLine);
 
     return ERROR_FREE;
 }
