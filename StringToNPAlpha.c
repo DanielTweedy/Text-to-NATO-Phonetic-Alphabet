@@ -29,12 +29,13 @@
 
 // Libraries
 #include <stdio.h>
-#include <stdbool.h>
-#include <stdlib.h>
 #include <ctype.h>
-#include <string.h>
 #include <errno.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
+#include <getopt.h>
+#include <stdbool.h>
 
 // Constants
 #define ERROR_FREE 0
@@ -43,21 +44,121 @@
 #define DEFAULT_STRING_SIZE 128
 #define MEM_ALLOC_ERROR "Memory Allocation Error"
 #define NUM_OFFSET 26
+#define UPPER_SHORT "all-upper"
+#define UPPER_LONG "all-uppercase"
+#define LOWER_SHORT "all-lower"
+#define LOWER_LONG "all-lowercase"
+#define FIRST_SHORT "first-cap"
+#define FIRST_LONG "first-capital"
 
 // Structures
 
 // Prototypes
 void toNatoPhonetic(char *);
 void printUserFormat(char *);
+void takeInputLine();
 
 // Global Variables
 // Contains all the phonetic translations of the NATO Phonetic Alphabet for the alphanumeric characters
-char *NPAlpha[MAX_DICT] = {"alpha", "bravo", "charlie", "delta", "echo", "foxtrot", "golf", "hotel", "india", "juliett", "kilo", "lima", "mike", "november", "oscar", "papa", "quebec", "romeo", "sierra", "tango", "uniform", "victor", "whiskey", "xray", "yankee", "zulu", "zero", "one", "two", "tree", "fower", "fife", "six", "seven", "eight", "niner"};
+char *NPAlpha[MAX_DICT] = {
+    "alpha", "bravo", "charlie", "delta", "echo", "foxtrot", "golf", "hotel",
+    "india", "juliett", "kilo", "lima", "mike", "november", "oscar", "papa",
+    "quebec", "romeo", "sierra", "tango", "uniform", "victor", "whiskey", "x-ray",
+    "yankee", "zulu", "zero", "one", "two", "tree", "fower", "fife", "six",
+    "seven", "eight", "niner"
+};
 
-bool capital = false;
+/* Used to determine the format of the individual characters
+ * All lower case (default), all uppder case, first character in the alphabetic
+ * string is upper case and followed by lower, or case follows the case of the input
+ * character
+ */
+typedef enum {LOWER, CAPS, FIRST, FOLLOW} AlphaFormat;
+// Universal format of the characters, lower case by default
+AlphaFormat universalFormat = LOWER;
+// Format of the character if program defines the universal format as "follow",
+// defaults to "first" and can only be "first" or "caps"
+AlphaFormat followFormat = FIRST;
+// Format of numbers, defaults to the universal format
+AlphaFormat numberFormat = LOWER;
+bool numSet = false; // tells if the numberFormat has been set
+// Used to tell the program if the default behavior of the program is wanted
+bool defaultProg = true;
 
+char *usage = "Usage: StringToNPAlpha [OPTION]...";
 
 int main(int argc, char *argv[]) {
+    int opt; // Return value from getopt_lonn
+    // structure used for getopt_long
+    static struct option long_options[] = {
+        {"all-uppercase",       no_argument, NULL, 'A'},
+        {"all-lowercase",       no_argument, NULL, 'L'},
+        {"first-capital",       no_argument, NULL, 'F'},
+        {"follow-input",  optional_argument, NULL, 'f'},
+        {"number-format", optional_argument, NULL, 'n'}
+    };
+
+    while((opt = getopt_long(argc, argv, "ALFf::n::", long_options, NULL)) != EOF) {
+        switch(opt) {
+            case 'A': universalFormat = CAPS;
+                break;
+            case 'L': universalFormat = LOWER;
+                break;
+            case 'F': universalFormat = FIRST;
+                break;
+            case 'f': universalFormat = FOLLOW;
+                if(optarg == NULL) {
+                    followFormat = FIRST;
+                } else {
+                    if(strcmp(optarg, UPPER_SHORT) == 0 || strcmp(optarg, UPPER_LONG) == 0) {
+                        followFormat = CAPS;
+                    } else if(strcmp(optarg, FIRST_SHORT) == 0 || strcmp(optarg, FIRST_LONG) == 0) {
+                        followFormat = FIRST;
+                    } else {
+                        fprintf(stderr, "Error: %s is not a valid Follow format\n", optarg);
+                        exit(ERROR_THROWN);
+                    }
+                }
+                break;
+            case 'n': 
+                if(optarg == NULL) {
+                    if(universalFormat == FOLLOW) {
+                        numberFormat = followFormat;
+                    } else {
+                        numberFormat = universalFormat;
+                    }
+                } else {
+                    if(strcmp(optarg, UPPER_SHORT) == 0 || strcmp(optarg, UPPER_LONG) == 0) {
+                        numberFormat = CAPS;
+                    } else if(strcmp(optarg, LOWER_SHORT) == 0 || strcmp(optarg, LOWER_LONG) == 0) {
+                        numberFormat = LOWER;
+                    } else if(strcmp(optarg, FIRST_SHORT) == 0 || strcmp(optarg, FIRST_LONG) == 0) {
+                        numberFormat = FIRST;
+                    } else {
+                        fprintf(stderr, "Error: %s is not a valid Number format\n", optarg);
+                        exit(ERROR_THROWN);
+                    }
+                }
+                numSet = true;
+                break;
+            default: printf("%s\n", usage);
+                exit(ERROR_THROWN);
+                break;
+        }
+    }
+
+    if(defaultProg) {
+        takeInputLine();
+    }
+
+    return ERROR_FREE;
+}
+
+/* takeInputLine()
+ * Gateway function to starting the conversion to the NPA.
+ * Assumes default behavior of the program has been choosen
+ */
+void takeInputLine() {
     size_t read = 0, length = 0; // contains the return value of getline
     char *inputLine = NULL, // input line from getline
          *manipulantLine = NULL; // String that will be a copy of the input line and will be manipulated
@@ -86,9 +187,8 @@ int main(int argc, char *argv[]) {
 
     free(manipulantLine);
     free(inputLine);
-
-    return ERROR_FREE;
 }
+
 
 /* toNatoPhonetic(char *)
  * Converts the individal alphanumeric characters to their NATO Phonetic
@@ -99,11 +199,16 @@ void toNatoPhonetic(char *inString) {
     char normalizer; // used for calulating the input character's place in the NPAlpha
 
     for(traveler = inString; *traveler != '\0'; traveler++) {
+        bool isCapital;
+
         if(isalnum(*traveler)) {
             if(isdigit(*traveler)) {
                 normalizer = '0' - NUM_OFFSET; // Numbers are after the letters in the npa array
             } else if(isupper(*traveler)) {
                 normalizer = 'A';
+                if(universalFormat == FOLLOW) {
+
+                }
             } else {
                 normalizer = 'a';
             }
@@ -123,5 +228,11 @@ void toNatoPhonetic(char *inString) {
  * Function assumes that the input is a Nato string.
  */
 void printUserFormat(char *natoString) {
-   printf("%s.", natoString); 
+    char *changer; // manipulated value of the input string
+
+    changer = natoString;
+
+    
+
+    printf("%s.", changer); 
 }
