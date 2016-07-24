@@ -52,11 +52,19 @@
 #define FIRST_LONG "first-capital"
 
 // Structures
+/* Used to determine the format of the individual characters
+ * All lower case (default), all uppder case, first character in the alphabetic
+ * string is upper case and followed by lower, or case follows the case of the input
+ * character
+ */
+typedef enum {LOWER, CAPS, FIRST, FOLLOW} AlphaFormat;
 
 // Prototypes
 void toNatoPhonetic(char *);
-void printUserFormat(char *);
+void printUserFormat(char *, bool, AlphaFormat);
 void takeInputLine();
+char *stringToUpper(char *);
+char *stringToFirst(char *);
 
 // Global Variables
 // Contains all the phonetic translations of the NATO Phonetic Alphabet for the alphanumeric characters
@@ -68,12 +76,6 @@ char *NPAlpha[MAX_DICT] = {
     "seven", "eight", "niner"
 };
 
-/* Used to determine the format of the individual characters
- * All lower case (default), all uppder case, first character in the alphabetic
- * string is upper case and followed by lower, or case follows the case of the input
- * character
- */
-typedef enum {LOWER, CAPS, FIRST, FOLLOW} AlphaFormat;
 // Universal format of the characters, lower case by default
 AlphaFormat universalFormat = LOWER;
 // Format of the character if program defines the universal format as "follow",
@@ -200,21 +202,25 @@ void toNatoPhonetic(char *inString) {
 
     for(traveler = inString; *traveler != '\0'; traveler++) {
         bool isCapital;
+        AlphaFormat inputFormat;
 
         if(isalnum(*traveler)) {
             if(isdigit(*traveler)) {
                 normalizer = '0' - NUM_OFFSET; // Numbers are after the letters in the npa array
+                false;
+                inputFormat = numberFormat;
             } else if(isupper(*traveler)) {
                 normalizer = 'A';
-                if(universalFormat == FOLLOW) {
-
-                }
+                isCapital = true;
+                inputFormat = universalFormat;
             } else {
                 normalizer = 'a';
+                isCapital = false;
+                inputFormat = universalFormat;
             }
 
             // printf("%s.", NPAlpha[*traveler - normalizer]);
-            printUserFormat(NPAlpha[*traveler - normalizer]);
+            printUserFormat(NPAlpha[*traveler - normalizer], isCapital, inputFormat);
         } else {
             printf("%c", *traveler);
         }
@@ -227,12 +233,76 @@ void toNatoPhonetic(char *inString) {
  * string and prints it out based on the command-line flags.
  * Function assumes that the input is a Nato string.
  */
-void printUserFormat(char *natoString) {
-    char *changer; // manipulated value of the input string
+void printUserFormat(char *natoString, bool isCapital, AlphaFormat inputFormat) {
+    char *changer = NULL; // manipulated value of the input string
 
+    /*changer = malloc(strlen(natoString));
+    if(changer == NULL) {
+        perror(MEM_ALLOC_ERROR);
+        exit(ERROR_THROWN);
+    }
+
+    strcpy(changer, natoString);*/
     changer = natoString;
-
-    
+    if((inputFormat == CAPS) ||
+        (inputFormat == FOLLOW && followFormat == CAPS  && isCapital)) {
+        changer = stringToUpper(changer);
+    } else if((inputFormat == FIRST) ||
+        (inputFormat == FOLLOW && followFormat == FIRST && isCapital)) {
+        changer = stringToFirst(changer);
+    }
 
     printf("%s.", changer); 
+}
+
+/* stringToUpper(char *)
+ * Takes a string and converts it into a string with all lower case letters to
+ * uppercase.
+ */
+char *stringToUpper(char *inputString) {
+    char *changer = NULL; // traversal node
+    int i;
+    size_t length = strlen(inputString);
+
+    changer = malloc(length + 1);
+    if(changer == NULL) {
+        perror(MEM_ALLOC_ERROR);
+        exit(ERROR_THROWN);
+    }
+
+    for(i = 0; i < length; i++) {
+        changer[i] = toupper(inputString[i]);
+    }
+
+    changer[length] = '\0';
+
+    return changer;
+}
+
+/* stringToFirst(char *)
+ * Takes a string and changes the first letter in the string to uppercase and
+ * the rest of the string to lower case.
+ */
+char *stringToFirst(char *inputString) {
+    char *changer; // traversal node
+    int i;
+    size_t length = strlen(inputString);
+
+    changer = malloc(length + 1);
+    if(changer == NULL) {
+        perror(MEM_ALLOC_ERROR);
+        exit(ERROR_THROWN);
+    }
+
+    for(i = 0; i < length; i++) {
+        if(i == 0) {
+            changer[i] = toupper(inputString[i]);
+        } else {
+            changer[i] = tolower(inputString[i]);
+        }
+    }
+
+    changer[length] = '\0';
+
+    return changer;
 }
