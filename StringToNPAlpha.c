@@ -44,12 +44,14 @@
 #define DEFAULT_STRING_SIZE 128
 #define MEM_ALLOC_ERROR "Memory Allocation Error"
 #define NUM_OFFSET 26
-#define UPPER_SHORT "all-upper"
+#define UPPER_SHORT "upper"
 #define UPPER_LONG "all-uppercase"
-#define LOWER_SHORT "all-lower"
+#define LOWER_SHORT "lower"
 #define LOWER_LONG "all-lowercase"
-#define FIRST_SHORT "first-cap"
+#define FIRST_SHORT "first"
 #define FIRST_LONG "first-capital"
+#define FOLLOW_SHORT "follow"
+#define FOLLOW_LONG "follow-input"
 
 // Structures
 /* Used to determine the format of the individual characters
@@ -136,6 +138,8 @@ int main(int argc, char *argv[]) {
                         numberFormat = LOWER;
                     } else if(strcmp(optarg, FIRST_SHORT) == 0 || strcmp(optarg, FIRST_LONG) == 0) {
                         numberFormat = FIRST;
+                    } else if(strcmp(optarg, FOLLOW_SHORT) == 0 || strcmp(optarg, FOLLOW_LONG)) {
+                        numberFormat = universalFormat;
                     } else {
                         fprintf(stderr, "Error: %s is not a valid Number format\n", optarg);
                         exit(ERROR_THROWN);
@@ -207,7 +211,7 @@ void toNatoPhonetic(char *inString) {
         if(isalnum(*traveler)) {
             if(isdigit(*traveler)) {
                 normalizer = '0' - NUM_OFFSET; // Numbers are after the letters in the npa array
-                false;
+                isCapital = false;
                 inputFormat = numberFormat;
             } else if(isupper(*traveler)) {
                 normalizer = 'A';
@@ -234,25 +238,15 @@ void toNatoPhonetic(char *inString) {
  * Function assumes that the input is a Nato string.
  */
 void printUserFormat(char *natoString, bool isCapital, AlphaFormat inputFormat) {
-    char *changer = NULL; // manipulated value of the input string
+    char *changer = natoString; // manipulated value of the input string
 
-    /*changer = malloc(strlen(natoString));
-    if(changer == NULL) {
-        perror(MEM_ALLOC_ERROR);
-        exit(ERROR_THROWN);
-    }
-
-    strcpy(changer, natoString);*/
-    changer = natoString;
-    if((inputFormat == CAPS) ||
-        (inputFormat == FOLLOW && followFormat == CAPS  && isCapital)) {
+    if((inputFormat == CAPS) || (inputFormat == FOLLOW && followFormat == CAPS && isCapital)) {
         changer = stringToUpper(changer);
-    } else if((inputFormat == FIRST) ||
-        (inputFormat == FOLLOW && followFormat == FIRST && isCapital)) {
+    } else if((inputFormat == FIRST) || (inputFormat == FOLLOW && followFormat == FIRST && isCapital)) {
         changer = stringToFirst(changer);
     }
 
-    printf("%s.", changer); 
+    printf("%s.", changer);
 }
 
 /* stringToUpper(char *)
@@ -260,21 +254,17 @@ void printUserFormat(char *natoString, bool isCapital, AlphaFormat inputFormat) 
  * uppercase.
  */
 char *stringToUpper(char *inputString) {
-    char *changer = NULL; // traversal node
-    int i;
-    size_t length = strlen(inputString);
-
-    changer = malloc(length + 1);
+    char *changer = strdup(inputString);
     if(changer == NULL) {
         perror(MEM_ALLOC_ERROR);
         exit(ERROR_THROWN);
     }
 
-    for(i = 0; i < length; i++) {
-        changer[i] = toupper(inputString[i]);
-    }
+    char *traveler = NULL;
 
-    changer[length] = '\0';
+    for(traveler = changer; *traveler != '\0'; traveler++) {
+        *traveler = toupper(*traveler);
+    }
 
     return changer;
 }
@@ -284,25 +274,13 @@ char *stringToUpper(char *inputString) {
  * the rest of the string to lower case.
  */
 char *stringToFirst(char *inputString) {
-    char *changer; // traversal node
-    int i;
-    size_t length = strlen(inputString);
-
-    changer = malloc(length + 1);
+    char *changer = strdup(inputString);
     if(changer == NULL) {
         perror(MEM_ALLOC_ERROR);
         exit(ERROR_THROWN);
     }
 
-    for(i = 0; i < length; i++) {
-        if(i == 0) {
-            changer[i] = toupper(inputString[i]);
-        } else {
-            changer[i] = tolower(inputString[i]);
-        }
-    }
-
-    changer[length] = '\0';
+    *changer = toupper(*changer);
 
     return changer;
 }
