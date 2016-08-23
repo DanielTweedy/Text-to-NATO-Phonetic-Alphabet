@@ -238,7 +238,12 @@ void toNatoPhonetic(char *inString) {
  * Function assumes that the input is a Nato string.
  */
 void printUserFormat(char *natoString, bool isCapital, AlphaFormat inputFormat) {
-    char *changer = natoString; // manipulated value of the input string
+    char *changer = strdup(natoString); // manipulated value of the input string
+
+    if(changer == NULL) {
+        perror(MEM_ALLOC_ERROR);
+        exit(ERROR_THROWN);
+    }
 
     if((inputFormat == CAPS) || (inputFormat == FOLLOW && followFormat == CAPS && isCapital)) {
         changer = stringToUpper(changer);
@@ -247,6 +252,8 @@ void printUserFormat(char *natoString, bool isCapital, AlphaFormat inputFormat) 
     }
 
     printf("%s.", changer);
+
+    free(changer);
 }
 
 /* stringToUpper(char *)
@@ -254,12 +261,7 @@ void printUserFormat(char *natoString, bool isCapital, AlphaFormat inputFormat) 
  * uppercase.
  */
 char *stringToUpper(char *inputString) {
-    char *changer = strdup(inputString);
-    if(changer == NULL) {
-        perror(MEM_ALLOC_ERROR);
-        exit(ERROR_THROWN);
-    }
-
+    char *changer = inputString;
     char *traveler = NULL;
 
     for(traveler = changer; *traveler != '\0'; traveler++) {
@@ -274,12 +276,7 @@ char *stringToUpper(char *inputString) {
  * the rest of the string to lower case.
  */
 char *stringToFirst(char *inputString) {
-    char *changer = strdup(inputString);
-    if(changer == NULL) {
-        perror(MEM_ALLOC_ERROR);
-        exit(ERROR_THROWN);
-    }
-
+    char *changer = inputString;
     *changer = toupper(*changer);
 
     return changer;
