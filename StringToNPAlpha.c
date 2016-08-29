@@ -23,8 +23,8 @@
  *            errno.h
  *            unistd.h
  *
- * Deficiencies: Options not yet implemented
- *               Edge cases not tested
+ * Deficiencies: Other military dictionaries have yet to be implemented.
+ *
  */
 
 // Libraries
@@ -55,11 +55,20 @@
 
 // Structures
 /* Used to determine the format of the individual characters
- * All lower case (default), all uppder case, first character in the alphabetic
+ * All lower case (default), all upper case, first character in the alphabetic
  * string is upper case and followed by lower, or case follows the case of the input
  * character
  */
 typedef enum {LOWER, CAPS, FIRST, FOLLOW} AlphaFormat;
+
+/* Used to determine the Phonetic alphabet the user wants text to be converted to.
+ * NATO Phonetic Alphabet (NPA), WW1 British Royal Navy (RN) Phonetic Alphabet, WW1
+ * Informal Phonetic Alphabet, 1924-1942 British Royal Airforce (RAF) Phonetic
+ * Alphabet, 1943-1956 RAF Phonetic Alphabet, 1941-1956 US Phonetic Alphabet,
+ * User Supplied Alphabet.
+ * Program defaults to NPA
+ */
+typedef enum {NPA, WW1RN, WW1INF, RAF24, RAF43, USPA, USER} AlphaType;
 
 // Prototypes
 void toNatoPhonetic(char *);
@@ -67,9 +76,14 @@ void printUserFormat(char *, bool, AlphaFormat);
 void takeInputLine();
 char *stringToUpper(char *);
 char *stringToFirst(char *);
+void setFollowFormat(char *);
+void setNumberFormat(char *);
+void setAlphabet(char *);
 
 // Global Variables
 // Contains all the phonetic translations of the NATO Phonetic Alphabet for the alphanumeric characters
+char *Alphabet[MAX_DICT]; 
+
 char *NPAlpha[MAX_DICT] = {
     "alpha", "bravo", "charlie", "delta", "echo", "foxtrot", "golf", "hotel",
     "india", "juliett", "kilo", "lima", "mike", "november", "oscar", "papa",
@@ -78,7 +92,7 @@ char *NPAlpha[MAX_DICT] = {
     "seven", "eight", "niner"
 };
 
-// Universal format of the characters, lower case by default
+// Universal format of the characters, lowercase by default
 AlphaFormat universalFormat = LOWER;
 // Format of the character if program defines the universal format as "follow",
 // defaults to "first" and can only be "first" or "caps"
@@ -86,9 +100,10 @@ AlphaFormat followFormat = FIRST;
 // Format of numbers, defaults to the universal format
 AlphaFormat numberFormat = LOWER;
 bool numSet = false; // tells if the numberFormat has been set
-// Used to tell the program if the default behavior of the program is wanted
-bool defaultProg = true;
 
+bool isDefaultAlpha = true; // used to determine if a user alphabet is being input
+
+// Usage for the program
 char *usage = "Usage: StringToNPAlpha [OPTION]...";
 
 int main(int argc, char *argv[]) {
@@ -99,10 +114,11 @@ int main(int argc, char *argv[]) {
         {"all-lowercase",       no_argument, NULL, 'L'},
         {"first-capital",       no_argument, NULL, 'F'},
         {"follow-input",  optional_argument, NULL, 'f'},
-        {"number-format", optional_argument, NULL, 'n'}
+        {"number-format", optional_argument, NULL, 'n'},
+        {"alphabet",      required_argument, NULL, 'a'}
     };
 
-    while((opt = getopt_long(argc, argv, "ALFf::n::", long_options, NULL)) != EOF) {
+    while((opt = getopt_long(argc, argv, "ALFf::n::a:", long_options, NULL)) != EOF) {
         switch(opt) {
             case 'A': universalFormat = CAPS;
                 break;
@@ -110,42 +126,11 @@ int main(int argc, char *argv[]) {
                 break;
             case 'F': universalFormat = FIRST;
                 break;
-            case 'f': universalFormat = FOLLOW;
-                if(optarg == NULL) {
-                    followFormat = FIRST;
-                } else {
-                    if(strcmp(optarg, UPPER_SHORT) == 0 || strcmp(optarg, UPPER_LONG) == 0) {
-                        followFormat = CAPS;
-                    } else if(strcmp(optarg, FIRST_SHORT) == 0 || strcmp(optarg, FIRST_LONG) == 0) {
-                        followFormat = FIRST;
-                    } else {
-                        fprintf(stderr, "Error: %s is not a valid Follow format\n", optarg);
-                        exit(ERROR_THROWN);
-                    }
-                }
+            case 'f': setFollowFormat(optarg);
                 break;
-            case 'n': 
-                if(optarg == NULL) {
-                    if(universalFormat == FOLLOW) {
-                        numberFormat = followFormat;
-                    } else {
-                        numberFormat = universalFormat;
-                    }
-                } else {
-                    if(strcmp(optarg, UPPER_SHORT) == 0 || strcmp(optarg, UPPER_LONG) == 0) {
-                        numberFormat = CAPS;
-                    } else if(strcmp(optarg, LOWER_SHORT) == 0 || strcmp(optarg, LOWER_LONG) == 0) {
-                        numberFormat = LOWER;
-                    } else if(strcmp(optarg, FIRST_SHORT) == 0 || strcmp(optarg, FIRST_LONG) == 0) {
-                        numberFormat = FIRST;
-                    } else if(strcmp(optarg, FOLLOW_SHORT) == 0 || strcmp(optarg, FOLLOW_LONG)) {
-                        numberFormat = universalFormat;
-                    } else {
-                        fprintf(stderr, "Error: %s is not a valid Number format\n", optarg);
-                        exit(ERROR_THROWN);
-                    }
-                }
-                numSet = true;
+            case 'n': setNumberFormat(optarg);
+                break;
+            case 'a': setAlphabet(optarg);
                 break;
             default: printf("%s\n", usage);
                 exit(ERROR_THROWN);
@@ -153,11 +138,67 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    if(defaultProg) {
-        takeInputLine();
+    if(isDefaultAlpha) {
+        int i;
+        for(i = 0; i < MAX_DICT; i++) {
+            Alphabet[i] = NPAlpha[i];
+        }
     }
 
+    takeInputLine();
+
     return ERROR_FREE;
+}
+
+/* setFollowFormat(char *)
+ * Function that takes arugments for "follow" option and sets variables that
+ * change the behavior of the program.
+ * Assumes that input argument can be NULL or invalid
+ */
+void setFollowFormat(char *optarg) {
+    universalFormat = FOLLOW;
+    if(optarg == NULL) {
+        followFormat = FIRST;
+    } else {
+        if(strcmp(optarg, UPPER_SHORT) == 0 || strcmp(optarg, UPPER_LONG) == 0) {
+            followFormat = CAPS;
+        } else if(strcmp(optarg, FIRST_SHORT) == 0 || strcmp(optarg, FIRST_LONG) == 0) {
+            followFormat = FIRST;
+        } else {
+            fprintf(stderr, "Error: %s is not a valid Follow format\n", optarg);
+            exit(ERROR_THROWN);
+        }
+    }
+}
+
+/* setNumberFormat(char *)
+ * Takes arguments for number formats and sets variables that change the
+ * behavior of the program.
+ * Function assumes that input can be NULL or invalid.
+ */
+void setNumberFormat(char *optarg) {
+    if(optarg == NULL) {
+        if(universalFormat == FOLLOW) {
+            numberFormat = followFormat;
+        } else {
+            numberFormat = universalFormat;
+        }
+    } else {
+        if(strcmp(optarg, UPPER_SHORT) == 0 || strcmp(optarg, UPPER_LONG) == 0) {
+            numberFormat = CAPS;
+        } else if(strcmp(optarg, LOWER_SHORT) == 0 || strcmp(optarg, LOWER_LONG) == 0) {
+            numberFormat = LOWER;
+        } else if(strcmp(optarg, FIRST_SHORT) == 0 || strcmp(optarg, FIRST_LONG) == 0) {
+            numberFormat = FIRST;
+        } else if(strcmp(optarg, FOLLOW_SHORT) == 0 || strcmp(optarg, FOLLOW_LONG)) {
+            numberFormat = universalFormat;
+        } else {
+            fprintf(stderr, "Error: %s is not a valid Number format\n", optarg);
+            exit(ERROR_THROWN);
+        }
+    }
+
+    numSet = true;
 }
 
 /* takeInputLine()
@@ -195,6 +236,26 @@ void takeInputLine() {
     free(inputLine);
 }
 
+/* setAlphabet(char *)
+ * Takes the name of a file as an argument and changes the internal alphabet
+ * based on the contents of the file, picking all words and replacing the
+ * alphabet with those words contained in the file, words defined as any string
+ * of characters seperated by whitespace.
+ * Function assumes that the file name can be invalid or inaccessable and will
+ * handle errors as neccessary.
+ */
+void setAlphabet(char *optarg) {
+    FILE *alphaFile;
+
+    alphaFile = fopen(optarg, "r");
+
+    if(alphaFile == NULL) {
+        perror("File Open Error");
+        exit(ERROR_THROWN);
+    }
+
+    fclose(alphaFile);
+}
 
 /* toNatoPhonetic(char *)
  * Converts the individal alphanumeric characters to their NATO Phonetic
@@ -202,7 +263,7 @@ void takeInputLine() {
  */
 void toNatoPhonetic(char *inString) {
     char *traveler = NULL; // String used to travel along the input stirng 
-    char normalizer; // used for calulating the input character's place in the NPAlpha
+    char normalizer; // used for calulating the input character's place in the Alphabet
 
     for(traveler = inString; *traveler != '\0'; traveler++) {
         bool isCapital;
@@ -223,8 +284,7 @@ void toNatoPhonetic(char *inString) {
                 inputFormat = universalFormat;
             }
 
-            // printf("%s.", NPAlpha[*traveler - normalizer]);
-            printUserFormat(NPAlpha[*traveler - normalizer], isCapital, inputFormat);
+            printUserFormat(Alphabet[*traveler - normalizer], isCapital, inputFormat);
         } else {
             printf("%c", *traveler);
         }
