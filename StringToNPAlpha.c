@@ -61,15 +61,6 @@
  */
 typedef enum {LOWER, CAPS, FIRST, FOLLOW} AlphaFormat;
 
-/* Used to determine the Phonetic alphabet the user wants text to be converted to.
- * NATO Phonetic Alphabet (NPA), WW1 British Royal Navy (RN) Phonetic Alphabet, WW1
- * Informal Phonetic Alphabet, 1924-1942 British Royal Airforce (RAF) Phonetic
- * Alphabet, 1943-1956 RAF Phonetic Alphabet, 1941-1956 US Phonetic Alphabet,
- * User Supplied Alphabet.
- * Program defaults to NPA
- */
-typedef enum {NPA, WW1RN, WW1INF, RAF24, RAF43, USPA, USER} AlphaType;
-
 // Prototypes
 void toNatoPhonetic(char *);
 void printUserFormat(char *, bool, AlphaFormat);
