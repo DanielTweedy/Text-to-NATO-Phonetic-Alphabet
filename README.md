@@ -24,7 +24,7 @@ tango.hotel.alpha.tango. india.sierra. alpha.lima.lima..
 
 ## How to Build
 1. Pull the project from GitHub
-```git pull 'https://github.com/MelBrooksKA/Text-to-NATO-Phonetic-Alphabet'```
+```git clone 'https://github.com/MelBrooksKA/Text-to-NATO-Phonetic-Alphabet'```
 2. Compile the code with `gcc` or `make`
 ```
 gcc -Wall -c StringToNPAlpha.c
